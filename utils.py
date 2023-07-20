@@ -4,7 +4,7 @@ from config import config as cfg
 import math
 # import mayavi.mlab as mlab
 import cv2
-from box_overlaps import *
+#from box_overlaps import *
 from data_aug import aug_data
 import matplotlib.pyplot as plt
 import matplotlib

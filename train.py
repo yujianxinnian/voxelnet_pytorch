@@ -67,7 +67,7 @@ torch.backends.cudnn.enabled=True
 
 def train(net, model_name, hyper, cfg, writer, optimizer):
 
-    dataset=KittiDataset(cfg=cfg,root='/data/cxg1/VoxelNet_pro/Data',set='train')
+    dataset=KittiDataset(cfg=cfg,root='./data/kitti_original',set='train')
     data_loader = data.DataLoader(dataset, batch_size=cfg.N, num_workers=4, collate_fn=detection_collate, shuffle=True, \
                               pin_memory=False)
 

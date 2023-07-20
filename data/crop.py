@@ -28,11 +28,11 @@ def load_calib(calib_dir):
     return P, Tr_velo_to_cam, R_cam_to_rect
 
 def prepare_velo_points(pts3d_raw):
-    '''Replaces the reflectance value by 1, and tranposes the array, so
-        points can be directly multiplied by the camera projection matrix'''
+    '''Replaces the reflectance value by 1, and tranposes the array, so points can be directly multiplied by the camera projection matrix'''
     pts3d = pts3d_raw
     # Reflectance > 0
-    indices = pts3d[:, 3] > 0
+    indices = pts3d[:, 3] > 0 # 是一个布尔数组，可用于索引
+    # indices 为true的行索引用于提取pts3d对应行的记录
     pts3d = pts3d[indices ,:]
     pts3d[:,3] = 1
     return pts3d.transpose(), indices
@@ -80,10 +80,10 @@ def align_img_and_pc(img_dir, pc_dir, calib_dir):
     return points
 
 # update the following directories
-IMG_ROOT = '/data/cxg1/VoxelNet_pro/Data/training/image_2/'
-PC_ROOT = '/data/cxg1/VoxelNet_pro/Data/training/velodyne/'
-CALIB_ROOT = '/data/cxg1/VoxelNet_pro/Data/training/calib/'
-PC_CROP_ROOT = '/data/cxg1/VoxelNet_pro/Data/training/crop/'
+IMG_ROOT = './data/kitti_original/training/image_2/'
+PC_ROOT = './data/kitti_original/training/velodyne/'
+CALIB_ROOT = './data/kitti_original/training/calib/'
+PC_CROP_ROOT = './data/kitti_original/training/velo_crop/'
 
 
 for frame in range(0, 7481):

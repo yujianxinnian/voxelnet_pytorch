@@ -3,38 +3,48 @@ import os
 import os.path
 import torch.utils.data as data
 import utils
-from utils import box3d_corner_to_center_batch, anchors_center_to_corner, corner_to_standup_box2d_batch
+#from utils import box3d_corner_to_center_batch, anchors_center_to_corner, corner_to_standup_box2d_batch
 from data_aug import aug_data
-from box_overlaps import bbox_overlaps
+#from box_overlaps import bbox_overlaps
 import numpy as np
 import cv2
 import torch
 from detectron2.layers.rotated_boxes import pairwise_iou_rotated
 
 class KittiDataset(data.Dataset):
-    def __init__(self, cfg, root='./KITTI',set='train',type='velodyne_train'):
+    def __init__(self, cfg, root='./kitti',set='train',type='velodyne_train'):
+        '''
+            set 可选只为train、val和test
+        '''
         self.type = type
         self.root = root
-        self.data_path = os.path.join(root, 'training')
+        if set=='test':
+            self.data_path = os.path.join(root, 'testing')
+        else:
+            self.data_path = os.path.join(root, 'training')
         self.lidar_path = os.path.join(self.data_path, "crop")
-        self.image_path = os.path.join(self.data_path, "image_2/")
+        self.image_path = os.path.join(self.data_path, "image_2")
         self.calib_path = os.path.join(self.data_path, "calib")
         self.label_path = os.path.join(self.data_path, "label_2")
-
-        with open(os.path.join(self.data_path, '%s.txt' % set)) as f:
+        # 数据集划分，训练、验证和测试
+        with open(os.path.join(self.data_path, 'split','%s.txt' % set)) as f:
             self.file_list = f.read().splitlines()
 
-        self.T = cfg.T
-        self.vd = cfg.vd
-        self.vh = cfg.vh
-        self.vw = cfg.vw
+        self.T = cfg.T #每个体素内的最大点云数量
+        # 体素大小
+        self.vd = cfg.vd #深度
+        self.vh = cfg.vh # 高度
+        self.vw = cfg.vw # 宽度
+        # 点云范围
         self.xrange = cfg.xrange
         self.yrange = cfg.yrange
         self.zrange = cfg.zrange
+        # 设置anchors
         self.anchors = torch.tensor(cfg.anchors.reshape(-1,7)).float().to(cfg.device)
         self.anchors_xylwr = self.anchors[..., [0, 1, 5, 4, 6]].contiguous()
         self.feature_map_shape = (int(cfg.H / 2), int(cfg.W / 2))
         self.anchors_per_position = cfg.anchors_per_position
+        # 非极大值抑制
         self.pos_threshold = cfg.pos_threshold
         self.neg_threshold = cfg.neg_threshold
 
@@ -157,10 +167,8 @@ class KittiDataset(data.Dataset):
 
         if self.type == 'velodyne_train':
             image = cv2.imread(image_file)
-
             # data augmentation
             # lidar, gt_box3d = aug_data(lidar, gt_box3d)
-
             # specify a range
             lidar, gt_box3d_corner, gt_box3d = utils.get_filtered_lidar(lidar, gt_box3d_corner, gt_box3d)
 

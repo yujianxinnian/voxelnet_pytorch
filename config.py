@@ -53,7 +53,7 @@ class config:
     nms_threshold = 1e-3
     score_threshold = 0.9
 
-    device = "cuda:2"
+    device = "cuda:0"
     num_dim = 51
 
     last_epoch=0
