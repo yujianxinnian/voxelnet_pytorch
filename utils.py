@@ -12,7 +12,9 @@ import os
 import torch
 
 def get_filtered_lidar(lidar, boxes3d=None, gt_box3d=None):
-
+    '''
+        选择指定范围内的点云数据，范围参数在config.py中设置
+    '''
     pxs = lidar[:, 0]
     pys = lidar[:, 1]
     pzs = lidar[:, 2]
@@ -382,6 +384,10 @@ def get_anchor3d(anchors):
     return anchors3d
 
 def load_kitti_label(label_file, Tr):
+    '''
+        通过标签数据，提取地面真实框(gt_boxes3d)及八个角(gt_boxes3d_corner)的坐标，并转换成点云坐标系统下的坐标
+        并且只提取config.py中class_list配置的目标类别对应的地面真实框及八个角度的坐标
+    '''
 
     with open(label_file,'r') as f:
         lines = f.readlines()

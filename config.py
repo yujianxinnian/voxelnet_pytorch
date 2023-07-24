@@ -1,3 +1,7 @@
+'''
+    在该项目中，裁剪的点云数据用于训练和验证。图像坐标之外的点云将被移除。
+'''
+
 import math
 import numpy as np
 

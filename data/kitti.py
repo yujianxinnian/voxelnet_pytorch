@@ -49,6 +49,9 @@ class KittiDataset(data.Dataset):
         self.neg_threshold = cfg.neg_threshold
 
     def cal_target(self, gt_box3d, gt_xyzhwlr, cfg):
+        '''
+            真实框和锚框送入dataset.cal_target计算真实偏移。然后求这两者的损失
+        '''
         # Input:
         #   labels: (N,)
         #   feature_map_shape: (w, l)
@@ -136,6 +139,7 @@ class KittiDataset(data.Dataset):
 
         # convert to  (D, H, W)
         voxel_coords = voxel_coords[:,[2,1,0]]
+        # 返回按纵轴去重后的voxel_coords，以及原始元素出现在新元素的索引值inv_ind及重复行出现的次数voxel_counts
         voxel_coords, inv_ind, voxel_counts = np.unique(voxel_coords, axis=0, \
                                                   return_inverse=True, return_counts=True)
 
@@ -156,23 +160,30 @@ class KittiDataset(data.Dataset):
 
         lidar_file = self.lidar_path + '/' + self.file_list[i] + '.bin'
         calib_file = self.calib_path + '/' + self.file_list[i] + '.txt'
-        label_file = self.label_path + '/' + self.file_list[i] + '.txt'
+        
         image_file = self.image_path + '/' + self.file_list[i] + '.png'
 
         calib = utils.load_kitti_calib(calib_file)
         Tr = calib['Tr_velo2cam']
-        gt_box3d_corner, gt_box3d = utils.load_kitti_label(label_file, Tr)
+       
         lidar = np.fromfile(lidar_file, dtype=np.float32).reshape(-1, 4)
 
 
         if self.type == 'velodyne_train':
+            '''
+                训练和验证都走这个流程
+            '''
+            label_file = self.label_path + '/' + self.file_list[i] + '.txt'
+            # 提取标签数据，并将坐标统一到点云坐标系
+            gt_box3d_corner, gt_box3d = utils.load_kitti_label(label_file, Tr)
+           
             image = cv2.imread(image_file)
             # data augmentation
             # lidar, gt_box3d = aug_data(lidar, gt_box3d)
             # specify a range
             lidar, gt_box3d_corner, gt_box3d = utils.get_filtered_lidar(lidar, gt_box3d_corner, gt_box3d)
 
-            # voxelize
+            # voxelize，体素化，建立体素坐标及对应体素的特征
             voxel_features, voxel_coords = self.preprocess(lidar)
 
             # bounding-box encoding
@@ -181,9 +192,13 @@ class KittiDataset(data.Dataset):
             return voxel_features, voxel_coords, gt_box3d_corner, gt_box3d, image, calib, self.file_list[i] # pos_equal_one, neg_equal_one, targets, image, calib, self.file_list[i]
 
         elif self.type == 'velodyne_test':
+            '''
+                测试评估，不需要处理标签数据，因为没有标签数据
+            '''
             image = cv2.imread(image_file)
 
-            lidar, gt_box3d = utils.get_filtered_lidar(lidar, gt_box3d)
+            # lidar, gt_box3d = utils.get_filtered_lidar(lidar, gt_box3d)
+            lidar = utils.get_filtered_lidar(lidar)
 
             voxel_features, voxel_coords = self.preprocess(lidar)
 
