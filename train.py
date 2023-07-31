@@ -63,6 +63,16 @@ def detection_collate(batch):
            images,\
            calibs, ids
 
+hyper = {'alpha': 1.0,
+          'beta': 10.0,
+          'pos': 0.75,
+          'neg': 0.5,
+          'lr':0.005,
+          'momentum': 0.9,
+          'lambda': 2.0,
+          'gamma':2,
+          'weight_decay':0.00001}
+
 torch.backends.cudnn.enabled=True
 
 def train(net, model_name, hyper, cfg, writer, optimizer):
@@ -95,40 +105,31 @@ def train(net, model_name, hyper, cfg, writer, optimizer):
     while epoch < args.epoch :
         iteration = 0
         for voxel_features, voxel_coords, gt_box3d_corner, gt_box3d, images, calibs, ids in data_loader:
-
             # wrapper to variable
             voxel_features = torch.tensor(voxel_features).to(cfg.device)
-
             pos_equal_one = []
             neg_equal_one = []
             targets = []
-
             with torch.no_grad():
                 for i in range(len(gt_box3d)):
                     pos_equal_one_, neg_equal_one_, targets_ = dataset.cal_target(gt_box3d_corner[i], gt_box3d[i], cfg)
                     pos_equal_one.append(pos_equal_one_)
                     neg_equal_one.append(neg_equal_one_)
-                    targets.append(targets_)
-            
+                    targets.append(targets_)           
             pos_equal_one = torch.stack(pos_equal_one, dim=0)
             neg_equal_one = torch.stack(neg_equal_one, dim=0)
-            targets = torch.stack(targets, dim=0)
-    
+            targets = torch.stack(targets, dim=0)    
             # zero the parameter gradients
             # forward
             score, reg = net(voxel_features, voxel_coords)
-
             # calculate loss
             conf_loss, reg_loss, _, _, _ = criterion(reg, score, pos_equal_one, neg_equal_one, targets)
             loss = hyper['lambda'] * conf_loss + reg_loss
-
             running_conf_loss += conf_loss.item()
             running_reg_loss += reg_loss.item()
             running_loss += (reg_loss.item() + conf_loss.item())
-
             # backward
             loss.backward()
-
             # visualize gradient
             if iteration == 0 and epoch % 30 == 0:
                 plot_grad(net.svfe.vfe_1.fcn.linear.weight.grad.view(-1), epoch,  "vfe_1_grad_%d"%(epoch))
@@ -178,15 +179,7 @@ def train(net, model_name, hyper, cfg, writer, optimizer):
                 'optimizer_state_dict': optimizer.state_dict(),
             }, os.path.join('./model', model_name+str(epoch)+'.pt'))
 
-hyper = {'alpha': 1.0,
-          'beta': 10.0,
-          'pos': 0.75,
-          'neg': 0.5,
-          'lr':0.005,
-          'momentum': 0.9,
-          'lambda': 2.0,
-          'gamma':2,
-          'weight_decay':0.00001}
+
 
 if __name__ == '__main__':
     pre_model = args.ckpt

@@ -159,16 +159,13 @@ class KittiDataset(data.Dataset):
     def __getitem__(self, i):
 
         lidar_file = self.lidar_path + '/' + self.file_list[i] + '.bin'
-        calib_file = self.calib_path + '/' + self.file_list[i] + '.txt'
-        
+        calib_file = self.calib_path + '/' + self.file_list[i] + '.txt'       
         image_file = self.image_path + '/' + self.file_list[i] + '.png'
 
         calib = utils.load_kitti_calib(calib_file)
         Tr = calib['Tr_velo2cam']
-       
         lidar = np.fromfile(lidar_file, dtype=np.float32).reshape(-1, 4)
-
-
+        # 判断是测试还是训练（验证）
         if self.type == 'velodyne_train':
             '''
                 训练和验证都走这个流程
