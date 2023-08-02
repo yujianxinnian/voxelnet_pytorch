@@ -63,24 +63,24 @@ def detection_collate(batch):
            images,\
            calibs, ids
 
-hyper = {'alpha': 1.0,
-          'beta': 10.0,
-          'pos': 0.75,
-          'neg': 0.5,
-          'lr':0.005,
-          'momentum': 0.9,
+hyper = {'alpha': 1.0, # 正样本损失项常数
+          'beta': 10.0, # 负样本损失项常数
+          'pos': 0.75, # 正样本阈值
+          'neg': 0.5,  # 负样本阈值
+          'lr':0.005,  # 学习率
+          'momentum': 0.9, # 动量（Momentum）是一种优化算法，用于加速神经网络的训练
           'lambda': 2.0,
           'gamma':2,
-          'weight_decay':0.00001}
+          'weight_decay':0.00001 # 权值衰减率
+          }
 
 torch.backends.cudnn.enabled=True
 
 def train(net, model_name, hyper, cfg, writer, optimizer):
 
-    dataset=KittiDataset(cfg=cfg,root='./data/kitti_original',set='train')
+    dataset = KittiDataset(cfg=cfg,root='./data/kitti_original',set='train')
     data_loader = data.DataLoader(dataset, batch_size=cfg.N, num_workers=4, collate_fn=detection_collate, shuffle=True, \
                               pin_memory=False)
-
     net.train()
 
     # define optimizer

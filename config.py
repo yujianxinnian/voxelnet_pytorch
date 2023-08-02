@@ -31,10 +31,25 @@ class config:
     H = math.ceil((yrange[1] - yrange[0]) / vh)
     D = math.ceil((zrange[1] - zrange[0]) / vd)
 
-    # # iou threshold
-    # pos_threshold = 0.9
-    # neg_threshold = 0.45
+    # iou threshold
+    ''' 
+        对于车辆检测：
+        如果锚点与地面实况的交集（IoU）最高，或者与地面实况的 IoU 高于 0.6（鸟瞰图），则该锚点被认为是正的。 
+        如果锚点与所有地面实况框之间的 IoU 小于 0.45，则该锚点被视为负锚点。 
+        将锚点视为不关心它们是否具有 0.45 ≤ IoU ≤ 0.6 与任何基本事实。
+        设置 α =1.5 和 β =1
+        对于行人和骑行者的检测：
+        如果一个anchor与groundtruth具有最高的IoU，或者它与groundtruth的IoU高于0.5，将其指定为积极的。 
+        如果锚点与每个真实值的IoU小于0.35，则该锚点被视为负锚点。
+        对于任何地面实况具有0.35 ≤ IoU ≤ 0.5的锚点，将它们视为无关紧要。
 
+
+    '''
+    pos_threshold = 0.6  # 正样本阈值
+    neg_threshold = 0.45 # 负样本阈值
+    # α,β 是计算损失函数中，平衡正反样本相对重要性的正常数。
+    alpha = 1.5
+    beta = 1
     #   anchors: (200, 176, 2, 7) x y z h w l r
     x = np.linspace(xrange[0]+vw, xrange[1]-vw, W//2)
     y = np.linspace(yrange[0]+vh, yrange[1]-vh, H//2)
