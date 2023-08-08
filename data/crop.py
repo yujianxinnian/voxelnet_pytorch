@@ -1,3 +1,7 @@
+"""
+    用于裁剪点云，裁剪的点云数据用于训练和验证。图像坐标之外的点云将被移除。
+"""
+
 import numpy as np
 import cv2
 import sys
