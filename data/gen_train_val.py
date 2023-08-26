@@ -1,5 +1,8 @@
+'''
+    拆分训练和验证集的方法
+'''
 import os
-root = './data/kitti_original/training/'
+root = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\training\\'
 train_file = open(os.path.join(root, 'split','train.txt'), 'w')
 val_file = open(os.path.join(root, 'split','val.txt'), 'w')
 from sklearn.model_selection import train_test_split

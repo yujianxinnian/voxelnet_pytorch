@@ -15,6 +15,7 @@ class KittiDataset(data.Dataset):
     def __init__(self, cfg, root='./kitti',set='train',type='velodyne_train'):
         '''
             set 可选只为train、val和test
+            type 训练或者验证集选择velodyne_train，测试集选择velodyne_test
         '''
         self.type = type
         self.root = root
@@ -22,12 +23,12 @@ class KittiDataset(data.Dataset):
             self.data_path = os.path.join(root, 'testing')
         else:
             self.data_path = os.path.join(root, 'training')
-        self.lidar_path = os.path.join(self.data_path, "crop")
+        self.lidar_path = os.path.join(self.data_path, "velo_crop")
         self.image_path = os.path.join(self.data_path, "image_2")
         self.calib_path = os.path.join(self.data_path, "calib")
         self.label_path = os.path.join(self.data_path, "label_2")
         # 数据集划分，训练、验证和测试
-        with open(os.path.join(self.data_path, 'split','%s.txt' % set)) as f:
+        with open(os.path.join(root, 'split','%s.txt' % set)) as f:
             self.file_list = f.read().splitlines()
 
         self.T = cfg.T #每个体素内的最大点云数量

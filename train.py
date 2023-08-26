@@ -20,30 +20,39 @@ import os
 from utils import plot_grad
 import cv2
 
-
 import argparse
 
 parser = argparse.ArgumentParser(description='arg parser')
 parser.add_argument('--ckpt', type=str, default=None, help='pre_load_ckpt')
-parser.add_argument('--index', type=int, default=None, help='hyper_tag')
+parser.add_argument('--index', type=int, default=0, help='hyper_tag')
 parser.add_argument('--epoch', type=int , default=160, help="training epoch")
 args = parser.parse_args()
 
 def weights_init(m):
+    '''
+        权重初始化
+    '''
     if isinstance(m, nn.Conv2d):
         init.xavier_normal_(m.weight.data)
         m.bias.data.zero_()
 
 def detection_collate(batch):
-    voxel_features = []
-    voxel_coords = []
-    gt_box3d_corner = []
-    gt_box3d = []
-
-    images = []
+    '''
+        批次加载的数据整理（自定义整理函数，而非使用默认的整理函数）
+    '''
+    voxel_features = [] # 体素特征
+    voxel_coords = [] # 体素坐标
+    gt_box3d_corner = [] # 地面真值3D框的8个角度坐标
+    gt_box3d = [] # 地面真值3D框
+    images = [] 
     calibs = []
     ids = []
     for i, sample in enumerate(batch):
+        '''
+            batch为批次
+            i是该批次中的样本序号
+            sample是该批次的第i个样本
+        '''
         voxel_features.append(sample[0])
 
         voxel_coords.append(
@@ -76,31 +85,36 @@ hyper = {'alpha': 1.0, # 正样本损失项常数
 
 torch.backends.cudnn.enabled=True
 
-def train(net, model_name, hyper, cfg, writer, optimizer):
-
-    dataset = KittiDataset(cfg=cfg,root='./data/kitti_original',set='train')
-    data_loader = data.DataLoader(dataset, batch_size=cfg.N, num_workers=4, collate_fn=detection_collate, shuffle=True, \
+def train(net, model_name, hyper, cfg, writer, optimizer,train_set='train',train_type='velodyne_train'):
+    '''
+        net 网络模型
+        model_name 训练后保存的模型名称
+        hyper 辅助参数设置
+        cfg 训练配置文件
+        writer 文件输出器
+        optimizer 优化函数
+        train_set 训练设置，可选只为train、val和test
+        train_type 训练类型：训练或者验证集选择velodyne_train，测试集选择velodyne_test
+    '''
+    dataset = KittiDataset(cfg=cfg,root = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original',set=train_set,type = train_type)
+    data_loader = data.DataLoader(dataset, batch_size=cfg.N, num_workers=4, collate_fn = detection_collate, shuffle=True, \
                               pin_memory=False)
     net.train()
-
     # define optimizer
     
     # define loss function
     criterion = VoxelLoss(alpha=hyper['alpha'], beta=hyper['beta'], gamma=hyper['gamma'])
-
     running_loss = 0.0
     running_reg_loss = 0.0
     running_conf_loss = 0.0
-
     # training process
     # batch_iterator = None
     epoch_size = len(dataset) // cfg.N
     print('Epoch size', epoch_size)
-
+    #动态调整学习率
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[round(args.epoch*x) for x in (0.7, 0.9)], gamma=0.1)
     scheduler.last_epoch = cfg.last_epoch + 1
     optimizer.zero_grad()
-
     epoch = cfg.last_epoch
     while epoch < args.epoch :
         iteration = 0
@@ -177,13 +191,12 @@ def train(net, model_name, hyper, cfg, writer, optimizer):
                 "epoch": epoch,
                 'model_state_dict': net.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-            }, os.path.join('./model', model_name+str(epoch)+'.pt'))
+            }, os.path.join(r'E:\zqw\PaperCode\OtherClassicalAlgorithm\voxelnet_pytorch_RPFey\TrainModel', model_name+str(epoch)+'.pt'))
 
 
 
 if __name__ == '__main__':
-    pre_model = args.ckpt
-
+    pre_model = args.ckpt # 预训练参数
     cfg.pos_threshold = hyper['pos']
     cfg.neg_threshold = hyper['neg']
     model_name = "model_%d"%(args.index+1)

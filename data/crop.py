@@ -84,10 +84,16 @@ def align_img_and_pc(img_dir, pc_dir, calib_dir):
     return points
 
 # update the following directories
-IMG_ROOT = './data/kitti_original/training/image_2/'
-PC_ROOT = './data/kitti_original/training/velodyne/'
-CALIB_ROOT = './data/kitti_original/training/calib/'
-PC_CROP_ROOT = './data/kitti_original/training/velo_crop/'
+# 训练数据集
+IMG_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\training\image_2\\'
+PC_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\training\velodyne\\'
+CALIB_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\training\calib\\'
+PC_CROP_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\training\velo_crop\\'
+# 测试数据集 
+# IMG_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\testing\image_2\\'
+# PC_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\testing\velodyne\\'
+# CALIB_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\testing\calib\\'
+# PC_CROP_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\testing\velo_crop\\'
 
 
 for frame in range(0, 7481):
