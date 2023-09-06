@@ -11,7 +11,7 @@ class config:
     class_list = ['Car', 'Van']
 
     # batch size
-    N=2
+    N=4
 
     # maxiumum number of points per voxel
     T=35
@@ -69,8 +69,10 @@ class config:
     anchors_per_position = 2
 
     # non-maximum suppression
-    nms_threshold = 1e-3
-    score_threshold = 0.9
+    # nms_threshold = 1e-3
+    # score_threshold = 0.9
+    nms_threshold = 0.1 #skyhehe123中的设置
+    score_threshold = 0.96 #skyhehe123中的设置
 
     device = "cuda:0"
     num_dim = 51

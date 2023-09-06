@@ -472,8 +472,13 @@ def test():
     plt.show()
 
 def plot_grad(grad, epoch, name):
-    if not os.path.exists('./vis/%d'%(epoch)):
-        os.mkdir('./vis/%d'%(epoch))
+    '''
+        梯度可视化
+    '''
+    rootPath = r'E:\zqw\PaperCode\OtherClassicalAlgorithm\voxelnet_pytorch_RPFey'
+    if not os.path.exists('%s\\vis\\%d'%(rootPath,epoch)):
+        #os.mkdir('%s\\vis\\%d'%(rootPath,epoch)) #在磁盘中直接创建目录（一级目录）
+        os.makedirs('%s\\vis\\%d'%(rootPath,epoch)) # 在磁盘中创建多级目录
     plt.figure()
     grad = grad.detach().cpu().numpy()
     matplotlib.rcParams['font.sans-serif']=['SimHei']   # 用黑体显示中文
@@ -487,7 +492,7 @@ def plot_grad(grad, epoch, name):
     mean = np.mean(grad)
     var = np.var(grad)
     plt.title("mean: %.4f,  var: %.4f"%(mean, var))
-    plt.savefig('./vis/%d/%s.png'%(epoch, name))
+    plt.savefig('%s/vis/%d/%s.png'%(rootPath,epoch, name))
 
 def print_prob(score, name):
     score = score.permute(0, 3, 1, 2)

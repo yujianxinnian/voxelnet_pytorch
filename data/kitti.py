@@ -67,7 +67,6 @@ class KittiDataset(data.Dataset):
         # denote whether the anchor box is pos or neg
         pos_equal_one = torch.zeros((*self.feature_map_shape, 2)).to(cfg.device)
         neg_equal_one = torch.zeros((*self.feature_map_shape, 2)).to(cfg.device)
-
         targets = torch.zeros((*self.feature_map_shape, 14)).to(cfg.device)
 
         gt_xyzhwlr = torch.tensor(gt_xyzhwlr, requires_grad=False).float().to(cfg.device)
@@ -90,19 +89,39 @@ class KittiDataset(data.Dataset):
         # find anchor iou < cfg.XXX_NEG_IOU
         id_neg = np.where(np.sum(iou < self.neg_threshold,
                                  axis=1) == iou.shape[1])[0] # anchor doesn't match ant ground truth
-
-        for gt in range(iou.shape[1]):
-            if gt not in id_pos_gt and iou[id_highest[gt], gt] > self.neg_threshold:
-                id_pos = np.append(id_pos, id_highest[gt])
-                id_pos_gt = np.append(id_pos_gt, gt)
-
-        # sample the negative points to keep ratio as 1:10 with minimum 500
-        num_neg = 10 * id_pos.shape[0]
-        if num_neg < 500:
-            num_neg = 500
-        if id_neg.shape[0] > num_neg:
-            np.random.shuffle(id_neg)
-            id_neg = id_neg[:num_neg]
+        '''
+            以下skyhehe123代码
+        '''
+        id_pos = np.concatenate([id_pos, id_highest])
+        id_pos_gt = np.concatenate([id_pos_gt, id_highest_gt])
+        # TODO: uniquify the array in a more scientific way
+        id_pos, index = np.unique(id_pos, return_index=True)
+        id_pos_gt = id_pos_gt[index]
+        id_neg.sort()
+        '''
+            以上skyhehe123代码，替换掉下面注释掉的原RPFey的代码
+        '''
+        '''
+            以下与skyhehe123不同处
+        '''
+        # print(iou.shape[1])
+        # for gt in range(iou.shape[1]):
+        #     print(id_highest[gt])
+        #     print(iou[id_highest[gt], gt])
+        #     if gt not in id_pos_gt and iou[id_highest[gt], gt] > self.neg_threshold:
+        #         id_pos = np.append(id_pos, id_highest[gt])
+        #         id_pos_gt = np.append(id_pos_gt, gt)
+      
+        # # sample the negative points to keep ratio as 1:10 with minimum 500
+        # num_neg = 10 * id_pos.shape[0]
+        # if num_neg < 500:
+        #     num_neg = 500
+        # if id_neg.shape[0] > num_neg:
+        #     np.random.shuffle(id_neg)
+        #     id_neg = id_neg[:num_neg]
+        '''
+            以上与skyhehe123不同处
+        '''
         # cal the target and set the equal one
         index_x, index_y, index_z = np.unravel_index(
             id_pos, (*self.feature_map_shape, self.anchors_per_position))
@@ -127,6 +146,11 @@ class KittiDataset(data.Dataset):
         index_x, index_y, index_z = np.unravel_index(
             id_neg, (*self.feature_map_shape, self.anchors_per_position))
         neg_equal_one[index_x, index_y, index_z] = 1
+
+        # to avoid a box be pos/neg in the same time  （skyhehe123中的代码）
+        index_x, index_y, index_z = np.unravel_index(
+            id_highest, (*self.feature_map_shape, self.anchors_per_position))
+        neg_equal_one[index_x, index_y, index_z] = 0
 
         return pos_equal_one, neg_equal_one, targets
 

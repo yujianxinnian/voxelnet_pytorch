@@ -64,7 +64,9 @@ class VFE(nn.Module):
     def __init__(self,cin,cout):
         super(VFE, self).__init__()
         assert cout % 2 == 0
-        self.units = cout // 2
+        # 由于FCN层不是最终的输出层（输出C1维特征），FCN之后还需要逐元素最大池化（也是C1维特征），
+        # 然后再逐点聚合特征，聚合后的特征维度是cout，也即2*C1=cout，所以此处的FCN输出维度应该是cout // 2 
+        self.units = cout // 2 
         self.fcn = FCN(cin,self.units)
 
     def forward(self, x, mask):
@@ -175,7 +177,7 @@ class VoxelNet(nn.Module):
         # （region proposal network）
 
         # merge the depth and feature dim into one, output probability score map and regression map
-        score, reg = self.rpn(cml_out.view(cfg.N,-1,cfg.H, cfg.W))
+        score, reg = self.rpn(cml_out.reshape(cfg.N,-1,cfg.H, cfg.W))
         score = torch.sigmoid(score)
         score = score.permute((0, 2, 3, 1))
 

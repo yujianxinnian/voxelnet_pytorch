@@ -19,13 +19,17 @@ import torchvision
 import os
 from utils import plot_grad
 import cv2
-
 import argparse
 
+
+import sys
+import time
+
+
 parser = argparse.ArgumentParser(description='arg parser')
-parser.add_argument('--ckpt', type=str, default=None, help='pre_load_ckpt')
+parser.add_argument('--ckpt', type=str, default='model_1210.pt', help='pre_load_ckpt')
 parser.add_argument('--index', type=int, default=0, help='hyper_tag')
-parser.add_argument('--epoch', type=int , default=160, help="training epoch")
+parser.add_argument('--epoch', type=int , default=211, help="training epoch")
 args = parser.parse_args()
 
 def weights_init(m):
@@ -65,6 +69,22 @@ def detection_collate(batch):
         images.append(sample[4])
         calibs.append(sample[5])
         ids.append(sample[6])
+        
+        b=np.concatenate(voxel_coords)
+        c=gt_box3d_corner
+        d=gt_box3d
+        e=images
+        f=calibs
+        g=ids
+        try:
+            a=np.concatenate(voxel_features)
+        except:
+            print('出错的ID：',sample[6])
+            sys.exit(0)
+            # print('voxel_features:',voxel_features)
+            # print('np.concatenate(voxel_features):',a)
+
+       
     return np.concatenate(voxel_features), \
            np.concatenate(voxel_coords), \
            gt_box3d_corner,\
@@ -105,6 +125,7 @@ def train(net, model_name, hyper, cfg, writer, optimizer,train_set='train',train
     # define loss function
     criterion = VoxelLoss(alpha=hyper['alpha'], beta=hyper['beta'], gamma=hyper['gamma'])
     running_loss = 0.0
+    
     running_reg_loss = 0.0
     running_conf_loss = 0.0
     # training process
@@ -207,12 +228,20 @@ if __name__ == '__main__':
     net.to(cfg.device)
     optimizer = optim.SGD(net.parameters(), lr=hyper['lr'], momentum = hyper['momentum'], weight_decay=hyper['weight_decay'])
 
-    if pre_model is not None and os.path.exists(os.path.join('./model',pre_model)) :
-        ckpt = torch.load(os.path.join('./model',pre_model), map_location=cfg.device)
+    pre_model_root = r'E:\zqw\PaperCode\OtherClassicalAlgorithm\voxelnet_pytorch_RPFey\TrainModel'
+    if pre_model is not None and os.path.exists(os.path.join(pre_model_root,pre_model)) :
+        ckpt = torch.load(os.path.join(pre_model_root,pre_model), map_location=cfg.device)
         net.load_state_dict(ckpt['model_state_dict'])
         cfg.last_epoch = ckpt['epoch']
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
     else :
-        net.apply(weights_init)     
+        net.apply(weights_init)   
+
+    time_start = time.time()  # 记录开始时间
+    # function()   执行的程序
     train(net, model_name, hyper, cfg, writer, optimizer)
+    time_end = time.time()  # 记录结束时间
+    time_sum = time_end - time_start  # 计算的时间差为程序的执行时间，单位为秒/s
+    # 输出训练时间
+    print("网络训练时间：", time_sum, "秒")
     writer.close()
