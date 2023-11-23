@@ -54,6 +54,16 @@ def detection_collate(batch):
            images,\
            calibs, ids
 
+hyper = {'alpha': 1.0,
+          'beta': 10.0,
+          'pos': 0.6,
+          'neg': 0.4,
+          'lr':0.01,
+          'momentum': 0.9,
+          'lambda': 2.0,
+          'gamma':2,
+          'weight_decay':0.00002}
+
 torch.backends.cudnn.enabled=True
 
 import argparse
@@ -61,9 +71,18 @@ parser = argparse.ArgumentParser(description='arg parser')
 parser.add_argument('--ckpt', type=str, default=None, help='pre_load_ckpt')
 args = parser.parse_args()
 
-def train(net, model_name, hyper, cfg, writer):
+def train(net, model_name, hyper, cfg, writer ,train_set='val',train_type='velodyne_train'):
+    '''
+        net 网络模型
+        model_name 模型名称
+        hyper 辅助参数设置
+        cfg 训练配置文件
+        writer 文件输出器
+        train_set 训练设置，可选只为train、val和test
+        train_type 训练类型：训练或者验证集选择velodyne_train，测试集选择velodyne_test
+    '''
 
-    dataset=KittiDataset(cfg=cfg,root='/data/cxg1/VoxelNet_pro/Data',set='val')
+    dataset=KittiDataset(cfg=cfg,root=r'C:\zqw\PaperCode\data\ObjectDetection\kitti_original',set=train_set,type = train_type)
     data_loader = data.DataLoader(dataset, batch_size=cfg.N, num_workers=4, collate_fn=detection_collate, shuffle=True, \
                               pin_memory=False)
     
@@ -123,15 +142,7 @@ def train(net, model_name, hyper, cfg, writer):
             pass
         iteration += 1
 
-hyper = {'alpha': 1.0,
-          'beta': 10.0,
-          'pos': 0.6,
-          'neg': 0.4,
-          'lr':0.01,
-          'momentum': 0.9,
-          'lambda': 2.0,
-          'gamma':2,
-          'weight_decay':0.00002}
+
 
 if __name__ == '__main__':
     cfg.pos_threshold = hyper['pos']

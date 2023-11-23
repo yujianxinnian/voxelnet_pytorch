@@ -27,14 +27,14 @@ import time
 
 
 parser = argparse.ArgumentParser(description='arg parser')
-parser.add_argument('--ckpt', type=str, default='model_1210.pt', help='pre_load_ckpt')
+parser.add_argument('--ckpt', type=str, default=None, help='pre_load_ckpt')
 parser.add_argument('--index', type=int, default=0, help='hyper_tag')
 parser.add_argument('--epoch', type=int , default=211, help="training epoch")
 args = parser.parse_args()
 
 def weights_init(m):
     '''
-        权重初始化
+        权重初始化 #调用torch.nn.init里面的初始化方法对权重和偏置进行初始化
     '''
     if isinstance(m, nn.Conv2d):
         init.xavier_normal_(m.weight.data)
@@ -53,6 +53,7 @@ def detection_collate(batch):
     ids = []
     for i, sample in enumerate(batch):
         '''
+            #这里的batch是自定义dataset里面__getitem__方法的返回值，batch里面有batch——size个样本
             batch为批次
             i是该批次中的样本序号
             sample是该批次的第i个样本
@@ -69,20 +70,6 @@ def detection_collate(batch):
         images.append(sample[4])
         calibs.append(sample[5])
         ids.append(sample[6])
-        
-        b=np.concatenate(voxel_coords)
-        c=gt_box3d_corner
-        d=gt_box3d
-        e=images
-        f=calibs
-        g=ids
-        try:
-            a=np.concatenate(voxel_features)
-        except:
-            print('出错的ID：',sample[6])
-            sys.exit(0)
-            # print('voxel_features:',voxel_features)
-            # print('np.concatenate(voxel_features):',a)
 
        
     return np.concatenate(voxel_features), \
@@ -99,7 +86,7 @@ hyper = {'alpha': 1.0, # 正样本损失项常数
           'lr':0.005,  # 学习率
           'momentum': 0.9, # 动量（Momentum）是一种优化算法，用于加速神经网络的训练
           'lambda': 2.0,
-          'gamma':2,
+          'gamma':3, # 回归损失函数SmoothL1Loss 在L1~L2之间变化的阈值,默认为1.0
           'weight_decay':0.00001 # 权值衰减率
           }
 
@@ -116,16 +103,15 @@ def train(net, model_name, hyper, cfg, writer, optimizer,train_set='train',train
         train_set 训练设置，可选只为train、val和test
         train_type 训练类型：训练或者验证集选择velodyne_train，测试集选择velodyne_test
     '''
-    dataset = KittiDataset(cfg=cfg,root = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original',set=train_set,type = train_type)
+    dataset = KittiDataset(cfg=cfg,root = r'C:\zqw\PaperCode\data\ObjectDetection\kitti_original',set=train_set,type = train_type)
     data_loader = data.DataLoader(dataset, batch_size=cfg.N, num_workers=4, collate_fn = detection_collate, shuffle=True, \
                               pin_memory=False)
-    net.train()
+    net.train() # 网络设为train模式，可以不断更新权重
     # define optimizer
     
     # define loss function
     criterion = VoxelLoss(alpha=hyper['alpha'], beta=hyper['beta'], gamma=hyper['gamma'])
     running_loss = 0.0
-    
     running_reg_loss = 0.0
     running_conf_loss = 0.0
     # training process
@@ -140,26 +126,35 @@ def train(net, model_name, hyper, cfg, writer, optimizer,train_set='train',train
     while epoch < args.epoch :
         iteration = 0
         for voxel_features, voxel_coords, gt_box3d_corner, gt_box3d, images, calibs, ids in data_loader:
+            # voxel_features[B,N1,35,7],非空体素每个有35个点，其余voxel_coords[B,N1,3]，每个非空体素的xyz位置用于还原回来用
             # wrapper to variable
             voxel_features = torch.tensor(voxel_features).to(cfg.device)
-            pos_equal_one = []
-            neg_equal_one = []
-            targets = []
+            pos_equal_one = [] # 正样本框
+            neg_equal_one = [] # 负样本框
+            targets = []  # 正样本框相对于gt的偏移量
             with torch.no_grad():
-                for i in range(len(gt_box3d)):
-                    pos_equal_one_, neg_equal_one_, targets_ = dataset.cal_target(gt_box3d_corner[i], gt_box3d[i], cfg)
-                    pos_equal_one.append(pos_equal_one_)
-                    neg_equal_one.append(neg_equal_one_)
-                    targets.append(targets_)           
-            pos_equal_one = torch.stack(pos_equal_one, dim=0)
-            neg_equal_one = torch.stack(neg_equal_one, dim=0)
-            targets = torch.stack(targets, dim=0)    
+                # Calculate ground-truth
+                pos_equal_one, neg_equal_one, targets =  dataset.cal_target2(gt_box3d_corner,gt_box3d,cfg)
+            #     for i in range(len(gt_box3d)):
+            #         pos_equal_one_, neg_equal_one_, targets_ = dataset.cal_target(gt_box3d_corner[i], gt_box3d[i], cfg)
+            #         pos_equal_one.append(pos_equal_one_)
+            #         neg_equal_one.append(neg_equal_one_)
+            #         targets.append(targets_)  
+            # #对张量进行扩维拼接(B,H,W,2)         
+            # pos_equal_one = torch.stack(pos_equal_one, dim=0) 
+            # #(B,H,W,2)
+            # neg_equal_one = torch.stack(neg_equal_one, dim=0)
+            # #(B,H,W,14)
+            # targets = torch.stack(targets, dim=0)    
             # zero the parameter gradients
             # forward
+            # 体素特征和体素的对应网格坐标一起送入网络
             score, reg = net(voxel_features, voxel_coords)
             # calculate loss
-            conf_loss, reg_loss, _, _, _ = criterion(reg, score, pos_equal_one, neg_equal_one, targets)
-            loss = hyper['lambda'] * conf_loss + reg_loss
+            loss, conf_loss, reg_loss, cls_pos_loss_rec, cls_neg_loss_rec = criterion(reg, score, pos_equal_one, neg_equal_one, targets)
+            # loss = hyper['lambda'] * conf_loss + reg_loss
+            # conf_loss, reg_loss, _, _, _ = criterion(reg, score, pos_equal_one, neg_equal_one, targets)
+            #loss = hyper['lambda'] * conf_loss + reg_loss
             running_conf_loss += conf_loss.item()
             running_reg_loss += reg_loss.item()
             running_loss += (reg_loss.item() + conf_loss.item())
@@ -173,21 +168,21 @@ def train(net, model_name, hyper, cfg, writer, optimizer,train_set='train',train
                 plot_grad(net.rpn.reg_head.conv.weight.grad.view(-1), epoch,"reghead_grad_%d"%(epoch))
                 plot_grad(net.rpn.score_head.conv.weight.grad.view(-1), epoch,"scorehead_grad_%d"%(epoch))
 
-            # update
+            # update 没有每次batch_size进行更新优化参数，相当于提高了batch_size
             if iteration%10 == 9:
                 for param in net.parameters():
                     param.grad /= 10
                 optimizer.step()
                 optimizer.zero_grad()
 
-            if iteration % 50 == 49:
-                writer.add_scalar('total_loss', running_loss/50.0, epoch * epoch_size + iteration)
-                writer.add_scalar('reg_loss', running_reg_loss/50.0, epoch * epoch_size + iteration)
-                writer.add_scalar('conf_loss',running_conf_loss/50.0, epoch * epoch_size + iteration)
+            if iteration % 20 == 0:
+                writer.add_scalar('total_loss', running_loss/20, epoch * epoch_size + iteration)
+                writer.add_scalar('reg_loss', running_reg_loss/20, epoch * epoch_size + iteration)
+                writer.add_scalar('conf_loss',running_conf_loss/20, epoch * epoch_size + iteration)
 
-                print("epoch : " + repr(epoch) + ' || iter ' + repr(iteration) + ' || Loss: %.4f || Loc Loss: %.4f || Conf Loss: %.4f' % \
-                ( running_loss/50.0, running_reg_loss/50.0, running_conf_loss/50.0))
-
+                print("epoch : " + repr(epoch) + ' || iter ' + repr(iteration) + ' || Loss: %.6f || Loc Loss: %.6f || Conf Loss: %.6f' % \
+                ( running_loss/20, running_reg_loss/20, running_conf_loss/3.0))
+               
                 running_conf_loss = 0.0
                 running_loss = 0.0
                 running_reg_loss = 0.0
@@ -221,7 +216,7 @@ if __name__ == '__main__':
     cfg.pos_threshold = hyper['pos']
     cfg.neg_threshold = hyper['neg']
     model_name = "model_%d"%(args.index+1)
-
+    # 构建TensorBoard，方便模型训练过程的可视化
     writer = SummaryWriter('runs/%s'%(model_name[:-4]))
 
     net = VoxelNet()
@@ -235,6 +230,7 @@ if __name__ == '__main__':
         cfg.last_epoch = ckpt['epoch']
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
     else :
+        # 如果没有预训练权重，直接初始化，运用apply()调用weight_init函数.
         net.apply(weights_init)   
 
     time_start = time.time()  # 记录开始时间

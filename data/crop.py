@@ -1,13 +1,11 @@
 """
     用于裁剪点云，裁剪的点云数据用于训练和验证。图像坐标之外的点云将被移除。
 """
-
 import numpy as np
 import cv2
 import sys
 
-CAM = 2
-
+CAM = 2 #左视图图像标记
 def load_velodyne_points(filename):
     points = np.fromfile(filename, dtype=np.float32).reshape(-1, 4)
     #points = points[:, :3]  # exclude luminance
@@ -53,7 +51,6 @@ def project_velo_points_in_img(pts3d, T_cam_velo, Rrect, Prect):
     pts2d_cam = Prect.dot(pts3d_cam[:,idx])
     return pts3d[:, idx], pts2d_cam/pts2d_cam[2,:], idx
 
-
 def align_img_and_pc(img_dir, pc_dir, calib_dir):
     
     img = cv2.imread(img_dir)
@@ -95,20 +92,11 @@ PC_CROP_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\training\v
 # CALIB_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\testing\calib\\'
 # PC_CROP_ROOT = r'E:\zqw\PaperCode\data\ObjectDetection\kitti_original\testing\velo_crop\\'
 
-
 for frame in range(0, 7481):
     img_dir = IMG_ROOT + '%06d.png' % frame
     pc_dir = PC_ROOT + '%06d.bin' % frame
     calib_dir = CALIB_ROOT + '%06d.txt' % frame
-
     points = align_img_and_pc(img_dir, pc_dir, calib_dir)
-    
     output_name = PC_CROP_ROOT + '%06d.bin' % frame
     sys.stdout.write('Save to %s \n' % output_name)
     points[:,:4].astype('float32').tofile(output_name)
-
-
-
-
-
-

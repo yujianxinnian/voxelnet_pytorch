@@ -81,92 +81,6 @@ def lidar_to_bev(lidar):
     return top, density_image
 
 
-# def draw_lidar(lidar, is_grid=False, is_axis = True, is_top_region=True, fig=None):
-
-#     pxs=lidar[:,0]
-#     pys=lidar[:,1]
-#     pzs=lidar[:,2]
-#     prs=lidar[:,3]
-
-#     if fig is None: fig = mlab.figure(figure=None, bgcolor=(0,0,0), fgcolor=None, engine=None, size=(1000, 500))
-
-#     mlab.points3d(
-#         pxs, pys, pzs, prs,
-#         mode='point',  # 'point'  'sphere'
-#         colormap='gnuplot',  #'bone',  #'spectral',  #'copper',
-#         scale_factor=1,
-#         figure=fig)
-
-#     #draw grid
-#     if is_grid:
-#         mlab.points3d(0, 0, 0, color=(1,1,1), mode='sphere', scale_factor=0.2)
-
-#         for y in np.arange(-50,50,1):
-#             x1,y1,z1 = -50, y, 0
-#             x2,y2,z2 =  50, y, 0
-#             mlab.plot3d([x1, x2], [y1, y2], [z1,z2], color=(0.5,0.5,0.5), tube_radius=None, line_width=1, figure=fig)
-
-#         for x in np.arange(-50,50,1):
-#             x1,y1,z1 = x,-50, 0
-#             x2,y2,z2 = x, 50, 0
-#             mlab.plot3d([x1, x2], [y1, y2], [z1,z2], color=(0.5,0.5,0.5), tube_radius=None, line_width=1, figure=fig)
-
-#     #draw axis
-#     if is_grid:
-#         mlab.points3d(0, 0, 0, color=(1,1,1), mode='sphere', scale_factor=0.2)
-
-#         axes=np.array([
-#             [2.,0.,0.,0.],
-#             [0.,2.,0.,0.],
-#             [0.,0.,2.,0.],
-#         ],dtype=np.float64)
-#         fov=np.array([  ##<todo> : now is 45 deg. use actual setting later ...
-#             [20., 20., 0.,0.],
-#             [20.,-20., 0.,0.],
-#         ],dtype=np.float64)
-
-
-#         mlab.plot3d([0, axes[0,0]], [0, axes[0,1]], [0, axes[0,2]], color=(1,0,0), tube_radius=None, figure=fig)
-#         mlab.plot3d([0, axes[1,0]], [0, axes[1,1]], [0, axes[1,2]], color=(0,1,0), tube_radius=None, figure=fig)
-#         mlab.plot3d([0, axes[2,0]], [0, axes[2,1]], [0, axes[2,2]], color=(0,0,1), tube_radius=None, figure=fig)
-#         mlab.plot3d([0, fov[0,0]], [0, fov[0,1]], [0, fov[0,2]], color=(1,1,1), tube_radius=None, line_width=1, figure=fig)
-#         mlab.plot3d([0, fov[1,0]], [0, fov[1,1]], [0, fov[1,2]], color=(1,1,1), tube_radius=None, line_width=1, figure=fig)
-
-#     #draw top_image feature area
-#     if is_top_region:
-#         x1 = cfg.xrange[0]
-#         x2 = cfg.xrange[1]
-#         y1 = cfg.yrange[0]
-#         y2 = cfg.yrange[1]
-#         mlab.plot3d([x1, x1], [y1, y2], [0,0], color=(0.5,0.5,0.5), tube_radius=None, line_width=1, figure=fig)
-#         mlab.plot3d([x2, x2], [y1, y2], [0,0], color=(0.5,0.5,0.5), tube_radius=None, line_width=1, figure=fig)
-#         mlab.plot3d([x1, x2], [y1, y1], [0,0], color=(0.5,0.5,0.5), tube_radius=None, line_width=1, figure=fig)
-#         mlab.plot3d([x1, x2], [y2, y2], [0,0], color=(0.5,0.5,0.5), tube_radius=None, line_width=1, figure=fig)
-
-#     mlab.orientation_axes()
-#     mlab.view(azimuth=180,elevation=None,distance=50,focalpoint=[ 12.0909996 , -1.04700089, -2.03249991])#2.0909996 , -1.04700089, -2.03249991
-
-#     return fig
-
-# def draw_gt_boxes3d(gt_boxes3d, fig, color=(1,0,0), line_width=2):
-
-#     num = len(gt_boxes3d)
-#     for n in range(num):
-#         b = gt_boxes3d[n]
-
-#         for k in range(0,4):
-
-#             i,j=k,(k+1)%4
-#             mlab.plot3d([b[i,0], b[j,0]], [b[i,1], b[j,1]], [b[i,2], b[j,2]], color=color, tube_radius=None, line_width=line_width, figure=fig)
-
-#             i,j=k+4,(k+3)%4 + 4
-#             mlab.plot3d([b[i,0], b[j,0]], [b[i,1], b[j,1]], [b[i,2], b[j,2]], color=color, tube_radius=None, line_width=line_width, figure=fig)
-
-#             i,j=k,k+4
-#             mlab.plot3d([b[i,0], b[j,0]], [b[i,1], b[j,1]], [b[i,2], b[j,2]], color=color, tube_radius=None, line_width=line_width, figure=fig)
-
-#     mlab.view(azimuth=180,elevation=None,distance=50,focalpoint=[ 12.0909996 , -1.04700089, -2.03249991])#2.0909996 , -1.04700089, -2.03249991
-
 def project_velo2rgb(velo,calib):
     T=np.zeros([4,4],dtype=np.float32)
     T[:3,:]=calib['Tr_velo2cam']
@@ -239,7 +153,11 @@ def draw_rects(image, rects, color=(255,255,255), thickness=1, darken=1):
 
 def load_kitti_calib(calib_file):
     """
-    load projection matrix
+        load projection matrix
+        P0 – P3（3x4）：就是对应的cam0 ~ cam3这四个相机矫正后的投影矩阵，每个都是3*4的矩阵
+        R0_rect（3x3）：矫正后的相机矩阵，注意在使用的时候需要reshape成4x4，具体方法是在R(4, 4)处添1，其余6个位置添0。
+        Tr_velo_to_cam（3x4）：velodyne到camera的旋转平移矩阵，此矩阵包含两个模块，左侧3x3的旋转矩阵和右侧13的平移向量，具体使用时也要reshape成44，具体方法是在最后添加一行（0,0,0,1）。
+        Tr_imu_to_velo（3x4）：IMU到velodyne的旋转平移矩阵，结构和使用方法跟Tr_velo_to_cam类似。
     """
     with open(calib_file) as fi:
         lines = fi.readlines()
@@ -264,16 +182,16 @@ def load_kitti_calib(calib_file):
             'R0': R0.reshape(3, 3),
             'Tr_velo2cam': Tr_velo_to_cam.reshape(3, 4)}
 
-def angle_in_limit(angle):
-    # To limit the angle in -pi/2 - pi/2
-    limit_degree = 5
-    while angle >= np.pi / 2:
-        angle -= np.pi
-    while angle < -np.pi / 2:
-        angle += np.pi
-    if abs(angle + np.pi / 2) < limit_degree / 180 * np.pi:
-        angle = np.pi / 2
-    return angle
+# def angle_in_limit(angle):
+#     # 论文原始代码中是ry_to_rz函数处理 To limit the angle in -pi/2 - pi/2
+#     limit_degree = 5
+#     while angle >= np.pi / 2:
+#         angle -= np.pi
+#     while angle < -np.pi / 2:
+#         angle += np.pi
+#     if abs(angle + np.pi / 2) < limit_degree / 180 * np.pi:
+#         angle = np.pi / 2
+#     return angle
 
 def box3d_cam_to_velo(box3d, Tr):
 
@@ -285,7 +203,18 @@ def box3d_cam_to_velo(box3d, Tr):
         lidar_loc_ = np.dot(T_inv, cam)
         lidar_loc = lidar_loc_[:3]
         return lidar_loc.reshape(1, 3)
-
+    
+    def angle_in_limit(angle):
+        # 论文原始代码中是ry_to_rz函数处理 To limit the angle in -pi/2 - pi/2
+        limit_degree = 5
+        while angle >= np.pi / 2:
+            angle -= np.pi
+        while angle < -np.pi / 2:
+            angle += np.pi
+        if abs(angle + np.pi / 2) < limit_degree / 180 * np.pi:
+            angle = np.pi / 2
+        return angle
+    
     h,w,l,tx,ty,tz,ry = [float(i) for i in box3d]
     cam = np.ones([4, 1])
     cam[0] = tx
@@ -334,7 +263,7 @@ def anchors_center_to_corner(anchors):
     return anchor_corner
 
 
-def corner_to_standup_box2d_batch(boxes_corner):
+def corner_to_standup_box2d(boxes_corner):
     # (N, 4, 2) -> (N, 4) x1, y1, x2, y2
     N = boxes_corner.shape[0]
     standup_boxes2d = np.zeros((N, 4))
@@ -399,7 +328,7 @@ def load_kitti_label(label_file, Tr):
 
     for j in range(num_obj):
         obj = lines[j].strip().split(' ')
-
+        # 遍历标注目标，只提取配置文件中class_list设定的目标物体
         obj_class = obj[0].strip()
         if obj_class not in cfg.class_list:
             continue
@@ -506,6 +435,23 @@ def print_prob(score, name):
     plt.imshow(score.astype(np.uint8), cmap='hot')
     plt.colorbar()
     plt.savefig(name)
+
+# TODO: 0/90 may be not correct
+def anchor_to_standup_box2d(anchors):
+    # (N, 4) -> (N, 4); x,y,w,l -> x1,y1,x2,y2
+    anchor_standup = np.zeros_like(anchors)
+    # r == 0
+    anchor_standup[::2, 0] = anchors[::2, 0] - anchors[::2, 3] / 2
+    anchor_standup[::2, 1] = anchors[::2, 1] - anchors[::2, 2] / 2
+    anchor_standup[::2, 2] = anchors[::2, 0] + anchors[::2, 3] / 2
+    anchor_standup[::2, 3] = anchors[::2, 1] + anchors[::2, 2] / 2
+    # r == pi/2
+    anchor_standup[1::2, 0] = anchors[1::2, 0] - anchors[1::2, 2] / 2
+    anchor_standup[1::2, 1] = anchors[1::2, 1] - anchors[1::2, 3] / 2
+    anchor_standup[1::2, 2] = anchors[1::2, 0] + anchors[1::2, 2] / 2
+    anchor_standup[1::2, 3] = anchors[1::2, 1] + anchors[1::2, 3] / 2
+
+    return anchor_standup
 
 if __name__ == '__main__':
     test()

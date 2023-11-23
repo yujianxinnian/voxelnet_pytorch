@@ -8,10 +8,10 @@ import numpy as np
 class config:
 
     # classes
-    class_list = ['Car', 'Van']
+    class_list = ['Car', 'Van'] # 也可以是Pedestrian and Cyclist
 
     # batch size
-    N=4
+    N=1
 
     # maxiumum number of points per voxel
     T=35
@@ -20,11 +20,16 @@ class config:
     vd = 0.4
     vh = 0.2
     vw = 0.2
-
+    
     # points cloud range
-    xrange = (0.0, 70.4)
-    yrange = (-40, 40)
-    zrange = (-3, 1)
+    if 'Car' or 'Van' in class_list:
+        xrange = (0.0, 70.4)
+        yrange = (-40, 40)
+        zrange = (-3, 1)
+    elif 'Pedestrian' or 'Cyclist' in class_list:
+        xrange = (0.0, 48)
+        yrange = (-20, 20)
+        zrange = (-3, 1)
 
     # voxel grid
     W = math.ceil((xrange[1] - xrange[0]) / vw)
@@ -45,25 +50,39 @@ class config:
 
 
     '''
-    pos_threshold = 0.6  # 正样本阈值
-    neg_threshold = 0.45 # 负样本阈值
+    if 'Car' or 'Van' in class_list:
+        pos_threshold = 0.6  # 正样本阈值
+        neg_threshold = 0.45 # 负样本阈值
+        ANCHOR_L = 3.9
+        ANCHOR_W = 1.6
+        ANCHOR_H = 1.56
+        ANCHOR_Z = -1.0 - ANCHOR_H/2
+    elif 'Pedestrian' or 'Cyclist' in class_list:
+        pos_threshold = 0.5  # 正样本阈值
+        neg_threshold = 0.35 # 负样本阈值
+        ANCHOR_L = 1.76
+        ANCHOR_W = 0.6
+        ANCHOR_H = 1.73
+        ANCHOR_Z = -0.6 - ANCHOR_H/2
+    elif class_list == ['Pedestrian']:
+        ANCHOR_L = 0.8
     # α,β 是计算损失函数中，平衡正反样本相对重要性的正常数。
-    alpha = 1.5
-    beta = 1
-    #   anchors: (200, 176, 2, 7) x y z h w l r
+    alpha = 1.5 # 正样本损失项常数（分类损失1）
+    beta = 1 # 负样本损失项常数（分类损失2）
+    #   anchors: (w, l, 2, 7) car(200, 176, 2, 7) x y z h w l r
     x = np.linspace(xrange[0]+vw, xrange[1]-vw, W//2)
     y = np.linspace(yrange[0]+vh, yrange[1]-vh, H//2)
     cx, cy = np.meshgrid(x, y)
     # all is (w, l, 2) 
     cx = np.tile(cx[..., np.newaxis], 2) 
     cy = np.tile(cy[..., np.newaxis], 2)
-    cz = np.ones_like(cx) * -1.0
-    w = np.ones_like(cx) * 1.6
-    l = np.ones_like(cx) * 3.9
-    h = np.ones_like(cx) * 1.56
+    cz = np.ones_like(cx) * ANCHOR_Z # 原本是乘以-1.0
+    w = np.ones_like(cx) * ANCHOR_W
+    l = np.ones_like(cx) * ANCHOR_L
+    h = np.ones_like(cx) * ANCHOR_H
     r = np.ones_like(cx)
     r[..., 0] = 0
-    r[..., 1] = np.pi/2
+    r[..., 1] = 90 / 180 * np.pi # 原本为np.pi/2
     anchors = np.stack([cx, cy, cz, h, w, l, r], axis=-1)
 
     anchors_per_position = 2
